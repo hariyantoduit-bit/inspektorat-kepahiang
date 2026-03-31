@@ -1561,14 +1561,81 @@ footer {
 </style>
 <script>
 // ════════════════════════════════
+// SUPABASE CONFIG
+// Database online — data tersimpan di server, bukan browser
+// ════════════════════════════════
+const SUPA_URL = 'https://hawsxdpufdahzxhdyxni.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd3N4ZHB1ZmRhaHp4aGR5eG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NDU4MTEsImV4cCI6MjA5MDUyMTgxMX0.3-P3ikoGTJQTK5e5E1YyM4t5jPd1puKpBvLDZjo61LI';
+
+const sbHeaders = {
+  'Content-Type': 'application/json',
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Prefer': 'return=representation'
+};
+
+async function sbGet(table, params) {
+  var url = SUPA_URL + '/rest/v1/' + table + '?order=id.desc';
+  if (params) url += '&' + params;
+  var res = await fetch(url, { headers: sbHeaders });
+  if (!res.ok) throw new Error('GET ' + table + ' gagal: ' + res.status);
+  return res.json();
+}
+
+async function sbInsert(table, data) {
+  var res = await fetch(SUPA_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: sbHeaders,
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    var err = await res.text();
+    throw new Error('INSERT ' + table + ' gagal: ' + err);
+  }
+  return res.json();
+}
+
+async function sbUpdate(table, id, data) {
+  var res = await fetch(SUPA_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'PATCH',
+    headers: sbHeaders,
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('UPDATE gagal: ' + res.status);
+  return res.json();
+}
+
+async function sbDelete(table, id) {
+  var res = await fetch(SUPA_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'DELETE',
+    headers: sbHeaders
+  });
+  if (!res.ok) throw new Error('DELETE gagal: ' + res.status);
+}
+
+// ════════════════════════════════
 // UTILITY FUNCTIONS
 // ════════════════════════════════
 function escHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function catLabel(k){
-  const map={pengumuman:'Pengumuman',kegiatan:'Kegiatan',audit:'Audit & Pengawasan',sdm:'SDM & Bimtek'};
+  var map={pengumuman:'Pengumuman',kegiatan:'Kegiatan',audit:'Audit & Pengawasan',sdm:'SDM & Bimtek'};
   return map[k]||k||'-';
+}
+function showAlert(id, type, msg) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+}
+function hideAlert(id) {
+  var el = document.getElementById(id);
+  if (el) { el.className = 'alert'; el.style.display = 'none'; }
+}
+function showLoading(containerId, msg) {
+  var el = document.getElementById(containerId);
+  if (el) el.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:32px;">' + (msg||'Memuat data...') + '</p>';
 }
 
 // ════════════════════════════════
@@ -1576,10 +1643,10 @@ function catLabel(k){
 // Tidak ada plaintext password di source code
 // ════════════════════════════════
 async function sha256(message) {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  var msgBuffer = new TextEncoder().encode(message);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 }
 
 // Hash SHA-256 — hanya hash yang disimpan, bukan password asli.
@@ -1592,85 +1659,26 @@ const USERS = [
 let currentUser = null;
 
 // ════════════════════════════════
-// DATA BERITA (localStorage-based)
-// ════════════════════════════════
-const DEFAULT_BERITA = [
-  {
-    id:1, judul:'Inspektorat Daerah Kepahiang Selesaikan Reviu LKPD TA 2025',
-    kategori:'audit', tanggal:'28 Maret 2026',
-    ringkasan:'Inspektorat Daerah Kabupaten Kepahiang berhasil menyelesaikan proses reviu Laporan Keuangan Pemerintah Daerah (LKPD) Tahun Anggaran 2025 sebelum batas waktu yang ditetapkan.',
-    isi:'Inspektorat Daerah Kabupaten Kepahiang berhasil menyelesaikan proses reviu Laporan Keuangan Pemerintah Daerah (LKPD) Tahun Anggaran 2025. Proses reviu dilaksanakan selama tiga minggu oleh tim auditor yang terdiri dari 8 orang auditor bersertifikat.',
-    ikon:'📊', status:'publish', gambar:'', youtube:'', video:''
-  },
-  {
-    id:2, judul:'Bimtek Penguatan SPIP bagi Pengelola Keuangan SKPD',
-    kategori:'sdm', tanggal:'20 Maret 2026',
-    ringkasan:'Inspektorat Daerah menyelenggarakan Bimbingan Teknis Penguatan Sistem Pengendalian Intern Pemerintah (SPIP) bagi seluruh pengelola keuangan SKPD di lingkungan Pemerintah Kabupaten Kepahiang.',
-    isi:'Kegiatan bimtek dilaksanakan selama dua hari, dihadiri oleh 72 orang pengelola keuangan dari 36 SKPD. Narasumber berasal dari BPKP Perwakilan Bengkulu.',
-    ikon:'🎓', status:'publish', gambar:'', youtube:'', video:''
-  },
-  {
-    id:3, judul:'Rapat Koordinasi Pengawasan Internal Triwulan I 2026',
-    kategori:'kegiatan', tanggal:'15 Maret 2026',
-    ringkasan:'Inspektorat Daerah Kabupaten Kepahiang menggelar Rapat Koordinasi Pengawasan Internal Triwulan I Tahun 2026 untuk mengevaluasi capaian program kerja pengawasan.',
-    isi:'Rapat dihadiri oleh seluruh pejabat struktural dan fungsional Inspektorat Daerah. Agenda utama meliputi evaluasi PKPT Triwulan I, pembahasan temuan hasil audit, dan perencanaan program triwulan II.',
-    ikon:'🤝', status:'publish', gambar:'', youtube:'', video:''
-  },
-  {
-    id:4, judul:'Pengumuman Jadwal Audit Reguler SKPD Semester I 2026',
-    kategori:'pengumuman', tanggal:'10 Maret 2026',
-    ringkasan:'Inspektorat Daerah mengumumkan jadwal pelaksanaan audit reguler terhadap SKPD di lingkungan Pemerintah Kabupaten Kepahiang untuk Semester I Tahun 2026.',
-    isi:'Audit reguler akan dilaksanakan mulai 1 April hingga 30 Juni 2026. Seluruh SKPD diharapkan mempersiapkan dokumen administrasi keuangan dan aset yang diperlukan.',
-    ikon:'📋', status:'publish', gambar:'', youtube:'', video:''
-  },
-  {
-    id:5, judul:'Inspektorat Terima Kunjungan Tim BPKP Bengkulu',
-    kategori:'kegiatan', tanggal:'05 Maret 2026',
-    ringkasan:'Inspektorat Daerah Kabupaten Kepahiang menerima kunjungan kerja dari Tim BPKP Perwakilan Provinsi Bengkulu dalam rangka penilaian kapabilitas APIP Tahun 2026.',
-    isi:'Tim BPKP yang dipimpin oleh Kepala Bidang Pengawasan melakukan penilaian internal audit capability model (IACM) selama dua hari di kantor Inspektorat Daerah.',
-    ikon:'🔍', status:'publish', gambar:'', youtube:'', video:''
-  },
-];
-
-function loadBerita(){
-  try { const s=localStorage.getItem('inspektorat_berita'); return s?JSON.parse(s):[...DEFAULT_BERITA]; }
-  catch(e){ return [...DEFAULT_BERITA]; }
-}
-function saveBerita(data){ localStorage.setItem('inspektorat_berita',JSON.stringify(data)); }
-
-// ════════════════════════════════
-// DATA POSTER (localStorage-based)
-// ════════════════════════════════
-function loadPoster(){
-  try { const s=localStorage.getItem('inspektorat_poster'); return s?JSON.parse(s):[]; }
-  catch(e){ return []; }
-}
-function savePoster(data){ localStorage.setItem('inspektorat_poster',JSON.stringify(data)); }
-
-// ════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════
-let currentPage='beranda';
+let currentPage = 'beranda';
 
 function showPage(p){
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  const pg=document.getElementById('page-'+p);
-  if(pg) pg.classList.add('active');
-  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
-  const navEl=document.getElementById('nav-'+p);
-  if(navEl) navEl.classList.add('active');
-  currentPage=p;
-  window.scrollTo(0,0);
-  // close mobile nav if open
-  const mn=document.getElementById('main-nav');
-  if(mn) mn.classList.remove('open');
-
-  const footer=document.getElementById('main-footer');
-  if(footer) footer.style.display=p==='dashboard'?'none':'';
-
-  if(p==='beranda'){ renderHomeNews(); renderHomePoster(); }
-  if(p==='berita') renderAllNews('semua');
-  if(p==='dashboard') renderDashboard();
+  document.querySelectorAll('.page').forEach(function(el){ el.classList.remove('active'); });
+  var pg = document.getElementById('page-' + p);
+  if (pg) pg.classList.add('active');
+  document.querySelectorAll('nav a').forEach(function(a){ a.classList.remove('active'); });
+  var navEl = document.getElementById('nav-' + p);
+  if (navEl) navEl.classList.add('active');
+  currentPage = p;
+  window.scrollTo(0, 0);
+  var mn = document.getElementById('main-nav');
+  if (mn) mn.classList.remove('open');
+  var footer = document.getElementById('main-footer');
+  if (footer) footer.style.display = p === 'dashboard' ? 'none' : '';
+  if (p === 'beranda') { renderHomeNews(); renderHomePoster(); }
+  if (p === 'berita') renderAllNews('semua');
+  if (p === 'dashboard') renderDashboard();
 }
 
 function toggleMobileNav(){
@@ -1681,189 +1689,209 @@ function toggleMobileNav(){
 // MEDIA HELPERS
 // ════════════════════════════════
 function getYoutubeId(url){
-  if(!url) return null;
-  const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-  return m?m[1]:null;
+  if (!url) return null;
+  var m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+  return m ? m[1] : null;
 }
 
 function mediaHtml(b, height){
-  height=height||'220px';
-  const ytId=getYoutubeId(b.youtube||'');
-  if(b.gambar) return '<img src="'+escHtml(b.gambar)+'" alt="'+escHtml(b.judul)+'" style="width:100%;height:'+height+';object-fit:cover;display:block;" onerror="this.style.display=\'none\'">';
-  if(ytId) return '<div style="position:relative;height:'+height+';background:#000;overflow:hidden;"><iframe src="https://www.youtube.com/embed/'+ytId+'" style="width:100%;height:100%;border:none;" allowfullscreen></iframe></div>';
-  if(b.video) return '<video src="'+escHtml(b.video)+'" controls style="width:100%;height:'+height+';background:#000;" preload="metadata"></video>';
-  return '<div class="news-featured-img" style="height:'+height+';font-size:56px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);">'+(b.ikon||'📰')+'</div>';
+  height = height || '220px';
+  var ytId = getYoutubeId(b.youtube || '');
+  if (b.gambar) return '<img src="' + escHtml(b.gambar) + '" alt="' + escHtml(b.judul) + '" style="width:100%;height:' + height + ';object-fit:cover;display:block;" onerror="this.style.display=\'none\'">';
+  if (ytId) return '<div style="position:relative;height:' + height + ';background:#000;overflow:hidden;"><iframe src="https://www.youtube.com/embed/' + ytId + '" style="width:100%;height:100%;border:none;" allowfullscreen></iframe></div>';
+  if (b.video) return '<video src="' + escHtml(b.video) + '" controls style="width:100%;height:' + height + ';background:#000;" preload="metadata"></video>';
+  return '<div class="news-featured-img" style="height:' + height + ';font-size:56px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);">' + (b.ikon || '📰') + '</div>';
 }
 
 // ════════════════════════════════
 // RENDER BERITA DI BERANDA
 // ════════════════════════════════
-function renderHomeNews(){
-  const data=loadBerita().filter(b=>b.status==='publish');
-  const grid=document.getElementById('home-news-grid');
-  if(!grid) return;
-  if(!data.length){ grid.innerHTML='<p style="color:var(--gray-400);padding:20px;">Belum ada berita.</p>'; return; }
-
-  const featured=data[0];
-  const sideItems=data.slice(1,4);
-
-  grid.innerHTML=
-    '<div class="news-featured" onclick="openBeritaModal('+featured.id+')" style="cursor:pointer;">'+
-      mediaHtml(featured,'260px')+
-      '<div style="position:relative;"><span class="category-tag">'+catLabel(featured.kategori)+'</span></div>'+
-      '<div class="news-featured-body">'+
-        '<h3>'+escHtml(featured.judul)+'</h3>'+
-        '<p>'+escHtml(featured.ringkasan)+'</p>'+
-        '<div class="news-meta"><span>📅 '+escHtml(featured.tanggal)+'</span><span>📌 '+catLabel(featured.kategori)+'</span></div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="news-sidebar">'+
-      sideItems.map(function(b){
-        return '<div class="news-card-sm" onclick="openBeritaModal('+b.id+')" style="cursor:pointer;">'+
-          '<span class="tag">'+catLabel(b.kategori)+'</span>'+
-          '<h4>'+escHtml(b.judul)+'</h4>'+
-          '<div class="date">📅 '+escHtml(b.tanggal)+'</div>'+
-        '</div>';
-      }).join('')+
-    '</div>';
+async function renderHomeNews(){
+  var grid = document.getElementById('home-news-grid');
+  if (!grid) return;
+  showLoading('home-news-grid', '⏳ Memuat berita...');
+  try {
+    var data = await sbGet('berita', 'status=eq.publish&limit=4');
+    if (!data.length) { grid.innerHTML = '<p style="color:var(--gray-400);padding:20px;">Belum ada berita.</p>'; return; }
+    var featured = data[0];
+    var sideItems = data.slice(1, 4);
+    grid.innerHTML =
+      '<div class="news-featured" onclick="openBeritaModal(' + featured.id + ')" style="cursor:pointer;">' +
+        mediaHtml(featured, '260px') +
+        '<div style="position:relative;"><span class="category-tag">' + catLabel(featured.kategori) + '</span></div>' +
+        '<div class="news-featured-body">' +
+          '<h3>' + escHtml(featured.judul) + '</h3>' +
+          '<p>' + escHtml(featured.ringkasan) + '</p>' +
+          '<div class="news-meta"><span>📅 ' + escHtml(featured.tanggal) + '</span><span>📌 ' + catLabel(featured.kategori) + '</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="news-sidebar">' +
+        sideItems.map(function(b){
+          return '<div class="news-card-sm" onclick="openBeritaModal(' + b.id + ')" style="cursor:pointer;">' +
+            '<span class="tag">' + catLabel(b.kategori) + '</span>' +
+            '<h4>' + escHtml(b.judul) + '</h4>' +
+            '<div class="date">📅 ' + escHtml(b.tanggal) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--red);padding:20px;">❌ Gagal memuat berita. Periksa koneksi internet.</p>';
+  }
 }
 
-function openBeritaModal(id){
-  const data=loadBerita();
-  const b=data.find(function(x){ return x.id===id; });
-  if(!b) return;
-  const ytId=getYoutubeId(b.youtube||'');
-  var ms='';
-  if(b.gambar) ms='<img src="'+escHtml(b.gambar)+'" style="width:100%;max-height:360px;object-fit:cover;border-radius:8px;margin-bottom:20px;" onerror="this.style.display=\'none\'">';
-  else if(ytId) ms='<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:20px;"><iframe src="https://www.youtube.com/embed/'+ytId+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe></div>';
-  else if(b.video) ms='<video src="'+escHtml(b.video)+'" controls style="width:100%;border-radius:8px;margin-bottom:20px;"></video>';
-
-  var overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(9,27,61,0.88);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML=
-    '<div style="background:white;border-radius:16px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;padding:40px 40px 32px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.4);">'+
-      '<button onclick="this.closest(\'div[style*=z-index]\').remove()" style="position:absolute;top:14px;right:14px;background:var(--gray-100);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>'+
-      '<span style="font-size:11px;font-weight:700;background:var(--gold);color:var(--navy-dark);padding:3px 10px;border-radius:12px;display:inline-block;margin-bottom:12px;">'+catLabel(b.kategori)+'</span>'+
-      '<h2 style="font-family:\'Lora\',serif;font-size:22px;color:var(--navy);margin-bottom:8px;line-height:1.35;">'+escHtml(b.judul)+'</h2>'+
-      '<div style="font-size:12px;color:var(--gray-400);margin-bottom:20px;">📅 '+escHtml(b.tanggal)+'</div>'+
-      ms+
-      '<div style="font-size:14.5px;color:var(--gray-600);line-height:1.8;">'+escHtml(b.isi).replace(/\n/g,'<br>')+'</div>'+
-    '</div>';
-  overlay.addEventListener('click',function(e){ if(e.target===overlay) overlay.remove(); });
+async function openBeritaModal(id){
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(9,27,61,0.88);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = '<div style="background:white;border-radius:16px;max-width:720px;width:100%;max-height:90vh;overflow-y:auto;padding:40px;position:relative;"><p style="text-align:center;color:var(--gray-400);">⏳ Memuat...</p></div>';
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+
+  try {
+    var data = await sbGet('berita', 'id=eq.' + id);
+    var b = data[0];
+    if (!b) { overlay.remove(); return; }
+    var ytId = getYoutubeId(b.youtube || '');
+    var ms = '';
+    if (b.gambar) ms = '<img src="' + escHtml(b.gambar) + '" style="width:100%;max-height:360px;object-fit:cover;border-radius:8px;margin-bottom:20px;" onerror="this.style.display=\'none\'">';
+    else if (ytId) ms = '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:20px;"><iframe src="https://www.youtube.com/embed/' + ytId + '" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe></div>';
+    else if (b.video) ms = '<video src="' + escHtml(b.video) + '" controls style="width:100%;border-radius:8px;margin-bottom:20px;"></video>';
+    overlay.querySelector('div').innerHTML =
+      '<button onclick="this.closest(\'[style*=z-index]\').remove()" style="position:absolute;top:14px;right:14px;background:var(--gray-100);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>' +
+      '<span style="font-size:11px;font-weight:700;background:var(--gold);color:var(--navy-dark);padding:3px 10px;border-radius:12px;display:inline-block;margin-bottom:12px;">' + catLabel(b.kategori) + '</span>' +
+      '<h2 style="font-family:\'Lora\',serif;font-size:22px;color:var(--navy);margin-bottom:8px;line-height:1.35;">' + escHtml(b.judul) + '</h2>' +
+      '<div style="font-size:12px;color:var(--gray-400);margin-bottom:20px;">📅 ' + escHtml(b.tanggal) + '</div>' +
+      ms +
+      '<div style="font-size:14.5px;color:var(--gray-600);line-height:1.8;">' + escHtml(b.isi).replace(/\n/g, '<br>') + '</div>';
+  } catch(e) {
+    overlay.querySelector('div').innerHTML = '<p style="color:var(--red);">❌ Gagal memuat berita.</p>';
+  }
 }
 
-function renderAllNews(filter){
-  var data=loadBerita().filter(function(b){ return b.status==='publish'; });
-  if(filter&&filter!=='semua') data=data.filter(function(b){ return b.kategori===filter; });
-  var grid=document.getElementById('all-news-grid');
-  if(!grid) return;
-  if(!data.length){ grid.innerHTML='<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:40px;">Belum ada berita dalam kategori ini.</p>'; return; }
-  grid.innerHTML=data.map(function(b){
-    return '<div class="news-featured" onclick="openBeritaModal('+b.id+')" style="display:flex;flex-direction:column;cursor:pointer;">'+
-      mediaHtml(b,'160px')+
-      '<div style="position:relative;"><span class="category-tag">'+catLabel(b.kategori)+'</span></div>'+
-      '<div class="news-featured-body" style="flex:1;">'+
-        '<h3 style="font-size:16px;">'+escHtml(b.judul)+'</h3>'+
-        '<p style="font-size:13px;">'+escHtml(b.ringkasan)+'</p>'+
-        '<div class="news-meta"><span>📅 '+escHtml(b.tanggal)+'</span></div>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+async function renderAllNews(filter){
+  var grid = document.getElementById('all-news-grid');
+  if (!grid) return;
+  showLoading('all-news-grid', '⏳ Memuat berita...');
+  try {
+    var params = 'status=eq.publish';
+    if (filter && filter !== 'semua') params += '&kategori=eq.' + filter;
+    var data = await sbGet('berita', params);
+    if (!data.length) { grid.innerHTML = '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:40px;">Belum ada berita dalam kategori ini.</p>'; return; }
+    grid.innerHTML = data.map(function(b){
+      return '<div class="news-featured" onclick="openBeritaModal(' + b.id + ')" style="display:flex;flex-direction:column;cursor:pointer;">' +
+        mediaHtml(b, '160px') +
+        '<div style="position:relative;"><span class="category-tag">' + catLabel(b.kategori) + '</span></div>' +
+        '<div class="news-featured-body" style="flex:1;">' +
+          '<h3 style="font-size:16px;">' + escHtml(b.judul) + '</h3>' +
+          '<p style="font-size:13px;">' + escHtml(b.ringkasan) + '</p>' +
+          '<div class="news-meta"><span>📅 ' + escHtml(b.tanggal) + '</span></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--red);grid-column:1/-1;text-align:center;padding:40px;">❌ Gagal memuat berita.</p>';
+  }
 }
 
 function filterBerita(f){
   document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
-  var btn=document.getElementById('filter-'+f);
-  if(btn) btn.classList.add('active');
+  var btn = document.getElementById('filter-' + f);
+  if (btn) btn.classList.add('active');
   renderAllNews(f);
 }
 
 // ════════════════════════════════
 // POSTER / BANNER BERANDA
 // ════════════════════════════════
-function renderHomePoster(){
-  var data=loadPoster();
-  var section=document.getElementById('poster-section');
-  var grid=document.getElementById('poster-display-grid');
-  if(!section||!grid) return;
-  if(!data.length){ section.style.display='none'; return; }
-  section.style.display='';
-  grid.innerHTML=data.map(function(p){
-    var clickAttr=p.link?'onclick="window.open(\''+escHtml(p.link)+'\',\'_blank\')" style="cursor:pointer;"':'';
-    return '<div '+clickAttr+' style="background:var(--white);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);transition:transform 0.2s;">'+
-      '<img src="'+escHtml(p.gambar)+'" alt="'+escHtml(p.judul)+'" style="width:100%;max-height:280px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'">'+
-      (p.judul||p.deskripsi?
-        '<div style="padding:14px 16px;">'+
-          (p.judul?'<div style="font-size:14px;font-weight:700;color:var(--navy);">'+escHtml(p.judul)+'</div>':'')+
-          (p.deskripsi?'<div style="font-size:12px;color:var(--gray-600);margin-top:4px;">'+escHtml(p.deskripsi)+'</div>':'')+
-        '</div>':'')+
-    '</div>';
-  }).join('');
+async function renderHomePoster(){
+  var section = document.getElementById('poster-section');
+  var grid = document.getElementById('poster-display-grid');
+  if (!section || !grid) return;
+  try {
+    var data = await sbGet('poster');
+    if (!data.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    grid.innerHTML = data.map(function(p){
+      var clickAttr = p.link ? 'onclick="window.open(\'' + escHtml(p.link) + '\',\'_blank\')" style="cursor:pointer;"' : '';
+      return '<div ' + clickAttr + ' style="background:var(--white);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);transition:transform 0.2s;">' +
+        '<img src="' + escHtml(p.gambar) + '" alt="' + escHtml(p.judul) + '" style="width:100%;max-height:280px;object-fit:cover;display:block;" onerror="this.style.display=\'none\'">' +
+        (p.judul || p.deskripsi ?
+          '<div style="padding:14px 16px;">' +
+            (p.judul ? '<div style="font-size:14px;font-weight:700;color:var(--navy);">' + escHtml(p.judul) + '</div>' : '') +
+            (p.deskripsi ? '<div style="font-size:12px;color:var(--gray-600);margin-top:4px;">' + escHtml(p.deskripsi) + '</div>' : '') +
+          '</div>' : '') +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    section.style.display = 'none';
+  }
 }
 
 function toggleFormPoster(){
-  var form=document.getElementById('form-poster-wrap');
-  var btn=document.getElementById('toggle-poster-btn');
-  if(!form) return;
-  var open=form.classList.toggle('open');
-  if(btn) btn.textContent=open?'− Tutup Form':'+ Buka Form';
+  var form = document.getElementById('form-poster-wrap');
+  var btn = document.getElementById('toggle-poster-btn');
+  if (!form) return;
+  var open = form.classList.toggle('open');
+  if (btn) btn.textContent = open ? '− Tutup Form' : '+ Buka Form';
 }
 
 function previewPoster(){
-  var url=document.getElementById('p-gambar')&&document.getElementById('p-gambar').value.trim();
-  var box=document.getElementById('poster-preview-box');
-  if(!box) return;
-  if(!url){ box.innerHTML=''; return; }
-  box.innerHTML='<img src="'+escHtml(url)+'" alt="Preview" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--gray-200);margin-top:4px;" onerror="this.parentElement.innerHTML=\'<p style=color:var(--red);font-size:13px;>❌ Gambar tidak dapat dimuat. Periksa URL.</p>\'">';
+  var url = document.getElementById('p-gambar') && document.getElementById('p-gambar').value.trim();
+  var box = document.getElementById('poster-preview-box');
+  if (!box) return;
+  if (!url) { box.innerHTML = ''; return; }
+  box.innerHTML = '<img src="' + escHtml(url) + '" alt="Preview" style="max-width:100%;max-height:180px;border-radius:8px;border:1px solid var(--gray-200);margin-top:4px;" onerror="this.parentElement.innerHTML=\'<p style=color:var(--red);font-size:13px;>❌ Gambar tidak dapat dimuat.</p>\'">';
 }
 
-function simpanPoster(){
-  var al=document.getElementById('poster-alert');
-  al.className='alert'; al.style.display='none';
-  var judul=(document.getElementById('p-judul')||{}).value||'';
-  var gambar=(document.getElementById('p-gambar')||{}).value||'';
-  var deskripsi=(document.getElementById('p-deskripsi')||{}).value||'';
-  var link=(document.getElementById('p-link')||{}).value||'';
-  judul=judul.trim(); gambar=gambar.trim(); deskripsi=deskripsi.trim(); link=link.trim();
-  if(!judul||!gambar){
-    al.className='alert alert-error show'; al.textContent='Judul dan URL Gambar wajib diisi.'; return;
+async function simpanPoster(){
+  var al = document.getElementById('poster-alert');
+  hideAlert('poster-alert');
+  var judul = (document.getElementById('p-judul') || {}).value || '';
+  var gambar = (document.getElementById('p-gambar') || {}).value || '';
+  var deskripsi = (document.getElementById('p-deskripsi') || {}).value || '';
+  var link = (document.getElementById('p-link') || {}).value || '';
+  judul = judul.trim(); gambar = gambar.trim();
+  if (!judul || !gambar) { showAlert('poster-alert', 'error', 'Judul dan URL Gambar wajib diisi.'); return; }
+  showAlert('poster-alert', 'info', '⏳ Menyimpan...');
+  try {
+    await sbInsert('poster', { judul: judul, gambar: gambar, deskripsi: deskripsi.trim(), link: link.trim() });
+    showAlert('poster-alert', 'success', '✅ Poster berhasil disimpan!');
+    ['p-judul','p-gambar','p-deskripsi','p-link'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+    var box = document.getElementById('poster-preview-box'); if (box) box.innerHTML = '';
+    renderPosterDash();
+    renderHomePoster();
+  } catch(e) {
+    showAlert('poster-alert', 'error', '❌ Gagal menyimpan: ' + e.message);
   }
-  var data=loadPoster();
-  var newId=data.length?Math.max.apply(null,data.map(function(p){ return p.id; }))+1:1;
-  data.unshift({id:newId,judul:judul,gambar:gambar,deskripsi:deskripsi,link:link});
-  savePoster(data);
-  al.className='alert alert-success show'; al.textContent='✅ Poster berhasil disimpan!';
-  ['p-judul','p-gambar','p-deskripsi','p-link'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-  var box=document.getElementById('poster-preview-box'); if(box) box.innerHTML='';
-  renderPosterDash();
-  renderHomePoster();
 }
 
-function hapusPoster(id){
-  if(!confirm('Yakin ingin menghapus poster ini?')) return;
-  savePoster(loadPoster().filter(function(p){ return p.id!==id; }));
-  renderPosterDash();
-  renderHomePoster();
+async function hapusPoster(id){
+  if (!confirm('Yakin ingin menghapus poster ini?')) return;
+  try {
+    await sbDelete('poster', id);
+    renderPosterDash();
+    renderHomePoster();
+  } catch(e) { alert('Gagal hapus: ' + e.message); }
 }
 
-function renderPosterDash(){
-  var data=loadPoster();
-  var grid=document.getElementById('poster-list-dash');
-  if(!grid) return;
-  if(!data.length){
-    grid.innerHTML='<p style="color:var(--gray-400);font-size:14px;padding:24px;text-align:center;">Belum ada poster. Klik + Buka Form untuk menambahkan.</p>';
-    return;
+async function renderPosterDash(){
+  var grid = document.getElementById('poster-list-dash');
+  if (!grid) return;
+  grid.innerHTML = '<p style="color:var(--gray-400);padding:20px;text-align:center;">⏳ Memuat...</p>';
+  try {
+    var data = await sbGet('poster');
+    if (!data.length) { grid.innerHTML = '<p style="color:var(--gray-400);font-size:14px;padding:24px;text-align:center;">Belum ada poster.</p>'; return; }
+    grid.innerHTML = data.map(function(p){
+      return '<div style="background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--gray-100);">' +
+        '<img src="' + escHtml(p.gambar) + '" alt="' + escHtml(p.judul) + '" style="width:100%;height:120px;object-fit:cover;" onerror="this.style.background=\'var(--gray-100)\';this.removeAttribute(\'src\')">' +
+        '<div style="padding:10px;">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(p.judul) + '</div>' +
+          '<button class="btn-action del" onclick="hapusPoster(' + p.id + ')" style="font-size:11px;width:100%;">🗑️ Hapus</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--red);padding:20px;">❌ Gagal memuat poster.</p>';
   }
-  grid.innerHTML=data.map(function(p){
-    return '<div style="background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--gray-100);">'+
-      '<img src="'+escHtml(p.gambar)+'" alt="'+escHtml(p.judul)+'" style="width:100%;height:120px;object-fit:cover;" onerror="this.style.background=\'var(--gray-100)\';this.removeAttribute(\'src\')">'+
-      '<div style="padding:10px;">'+
-        '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(p.judul)+'</div>'+
-        '<button class="btn-action del" onclick="hapusPoster('+p.id+')" style="font-size:11px;width:100%;">🗑️ Hapus</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
 }
 
 // ════════════════════════════════
@@ -1873,88 +1901,87 @@ function openLogin(){ document.getElementById('login-overlay').classList.add('op
 function closeLogin(){ document.getElementById('login-overlay').classList.remove('open'); }
 
 async function doLogin(){
-  var u=document.getElementById('login-user').value.trim();
-  var p=document.getElementById('login-pass').value;
-  var al=document.getElementById('login-alert');
-  al.className='alert'; al.style.display='none';
-  if(!u||!p){
-    al.className='alert alert-error show'; al.textContent='Username dan kata sandi tidak boleh kosong.'; return;
-  }
-  var inputHash=await sha256(p);
-  var user=USERS.find(function(x){ return x.username===u && x.passhash===inputHash; });
-  if(!user){
-    al.className='alert alert-error show'; al.textContent='Username atau kata sandi salah. Silakan coba lagi.'; return;
-  }
-  currentUser=user;
+  var u = document.getElementById('login-user').value.trim();
+  var p = document.getElementById('login-pass').value;
+  hideAlert('login-alert');
+  if (!u || !p) { showAlert('login-alert', 'error', 'Username dan kata sandi tidak boleh kosong.'); return; }
+  var inputHash = await sha256(p);
+  var user = USERS.find(function(x){ return x.username === u && x.passhash === inputHash; });
+  if (!user) { showAlert('login-alert', 'error', 'Username atau kata sandi salah.'); return; }
+  currentUser = user;
   closeLogin();
-  document.getElementById('login-user').value='';
-  document.getElementById('login-pass').value='';
-  document.getElementById('sidebar-nama').textContent=user.nama;
-  document.getElementById('sidebar-role').textContent=user.role;
-  document.getElementById('dash-nama').textContent=user.nama.split(',')[0];
-  document.getElementById('profil-nama').textContent=user.nama;
-  document.getElementById('profil-role').textContent=user.role;
-  document.getElementById('profil-input-nama').value=user.nama;
-  document.getElementById('profil-input-email').value=user.username+'@inspektorat.kepahiangkab.go.id';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('sidebar-nama').textContent = user.nama;
+  document.getElementById('sidebar-role').textContent = user.role;
+  document.getElementById('dash-nama').textContent = user.nama.split(',')[0];
+  document.getElementById('profil-nama').textContent = user.nama;
+  document.getElementById('profil-role').textContent = user.role;
+  document.getElementById('profil-input-nama').value = user.nama;
+  document.getElementById('profil-input-email').value = user.username + '@inspektorat.kepahiangkab.go.id';
   showPage('dashboard');
 }
 
-function doLogout(){ currentUser=null; showPage('beranda'); }
+function doLogout(){ currentUser = null; showPage('beranda'); }
 
 // ════════════════════════════════
 // DASHBOARD
 // ════════════════════════════════
-function renderDashboard(){
-  var data=loadBerita();
-  var pub=data.filter(function(b){ return b.status==='publish'; });
-  var dft=data.filter(function(b){ return b.status==='draft'; });
-  document.getElementById('stat-total').textContent=data.length;
-  document.getElementById('stat-publish').textContent=pub.length;
-  document.getElementById('stat-draft').textContent=dft.length;
-  renderOverviewTable(data.slice(0,5));
-  renderBeritaTable(data);
+async function renderDashboard(){
+  try {
+    var all = await sbGet('berita');
+    var pub = all.filter(function(b){ return b.status === 'publish'; });
+    var dft = all.filter(function(b){ return b.status === 'draft'; });
+    document.getElementById('stat-total').textContent = all.length;
+    document.getElementById('stat-publish').textContent = pub.length;
+    document.getElementById('stat-draft').textContent = dft.length;
+    renderOverviewTable(all.slice(0, 5));
+    renderBeritaTable(all);
+  } catch(e) {
+    console.error('Dashboard error:', e);
+  }
 }
 
 function renderOverviewTable(data){
-  var tb=document.getElementById('overview-tbody');
-  if(!tb) return;
-  tb.innerHTML=data.map(function(b){
-    return '<tr>'+
-      '<td>'+escHtml(b.judul)+'</td>'+
-      '<td><span style="font-size:12px;background:var(--gray-100);padding:2px 8px;border-radius:10px;">'+catLabel(b.kategori)+'</span></td>'+
-      '<td>'+escHtml(b.tanggal)+'</td>'+
-      '<td><span class="status-badge status-'+b.status+'">'+(b.status==='publish'?'✅ Publish':'📝 Draft')+'</span></td>'+
+  var tb = document.getElementById('overview-tbody');
+  if (!tb) return;
+  tb.innerHTML = data.map(function(b){
+    return '<tr>' +
+      '<td>' + escHtml(b.judul) + '</td>' +
+      '<td><span style="font-size:12px;background:var(--gray-100);padding:2px 8px;border-radius:10px;">' + catLabel(b.kategori) + '</span></td>' +
+      '<td>' + escHtml(b.tanggal) + '</td>' +
+      '<td><span class="status-badge status-' + b.status + '">' + (b.status === 'publish' ? '✅ Publish' : '📝 Draft') + '</span></td>' +
     '</tr>';
   }).join('');
 }
 
 function renderBeritaTable(data){
-  var tb=document.getElementById('berita-tbody');
-  if(!tb) return;
-  tb.innerHTML=data.map(function(b){
-    return '<tr>'+
-      '<td>'+escHtml(b.judul)+'</td>'+
-      '<td><span style="font-size:12px;background:var(--gray-100);padding:2px 8px;border-radius:10px;">'+catLabel(b.kategori)+'</span></td>'+
-      '<td>'+escHtml(b.tanggal)+'</td>'+
-      '<td><span class="status-badge status-'+b.status+'">'+(b.status==='publish'?'✅ Publish':'📝 Draft')+'</span></td>'+
-      '<td>'+
-        '<button class="btn-action" onclick="toggleStatus('+b.id+')">'+(b.status==='publish'?'Jadikan Draft':'Publish')+'</button>'+
-        '<button class="btn-action del" onclick="hapusBerita('+b.id+')">Hapus</button>'+
-      '</td>'+
+  var tb = document.getElementById('berita-tbody');
+  if (!tb) return;
+  tb.innerHTML = data.map(function(b){
+    return '<tr>' +
+      '<td>' + escHtml(b.judul) + '</td>' +
+      '<td><span style="font-size:12px;background:var(--gray-100);padding:2px 8px;border-radius:10px;">' + catLabel(b.kategori) + '</span></td>' +
+      '<td>' + escHtml(b.tanggal) + '</td>' +
+      '<td><span class="status-badge status-' + b.status + '">' + (b.status === 'publish' ? '✅ Publish' : '📝 Draft') + '</span></td>' +
+      '<td>' +
+        '<button class="btn-action" onclick="toggleStatus(' + b.id + ',\'' + b.status + '\')">' + (b.status === 'publish' ? 'Jadikan Draft' : 'Publish') + '</button>' +
+        '<button class="btn-action del" onclick="hapusBerita(' + b.id + ')">Hapus</button>' +
+      '</td>' +
     '</tr>';
-  }).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:28px;">Belum ada berita.</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:28px;">Belum ada berita.</td></tr>';
 }
 
 function switchDash(id){
   ['dash-overview','dash-berita','dash-poster','dash-pengumuman','dash-profil'].forEach(function(d){
-    var el=document.getElementById(d); if(el) el.style.display=d===id?'block':'none';
+    var el = document.getElementById(d); if (el) el.style.display = d === id ? 'block' : 'none';
   });
   ['smenu-overview','smenu-berita','smenu-poster','smenu-pengumuman','smenu-profil'].forEach(function(d){
-    var el=document.getElementById(d); if(el) el.classList.remove('active');
+    var el = document.getElementById(d); if (el) el.classList.remove('active');
   });
-  var map={'dash-overview':'smenu-overview','dash-berita':'smenu-berita','dash-poster':'smenu-poster','dash-pengumuman':'smenu-pengumuman','dash-profil':'smenu-profil'};
-  if(map[id]){ var el=document.getElementById(map[id]); if(el) el.classList.add('active'); }
-  if(id==='dash-poster') renderPosterDash();
+  var map = {'dash-overview':'smenu-overview','dash-berita':'smenu-berita','dash-poster':'smenu-poster','dash-pengumuman':'smenu-pengumuman','dash-profil':'smenu-profil'};
+  if (map[id]) { var el = document.getElementById(map[id]); if (el) el.classList.add('active'); }
+  if (id === 'dash-poster') renderPosterDash();
   else renderDashboard();
 }
 
@@ -1962,68 +1989,78 @@ function switchDash(id){
 // FORM BERITA
 // ════════════════════════════════
 function toggleFormBerita(){
-  var form=document.getElementById('form-berita-wrap');
-  var btn=document.getElementById('toggle-form-btn');
-  var open=form.classList.toggle('open');
-  if(btn) btn.textContent=open?'− Tutup Form':'+ Buka Form';
+  var form = document.getElementById('form-berita-wrap');
+  var btn = document.getElementById('toggle-form-btn');
+  var open = form.classList.toggle('open');
+  if (btn) btn.textContent = open ? '− Tutup Form' : '+ Buka Form';
 }
 
-function simpanBerita(){
-  var al=document.getElementById('form-alert');
-  al.className='alert'; al.style.display='none';
-  var judul=(document.getElementById('b-judul')||{}).value||'';
-  var kategori=(document.getElementById('b-kategori')||{}).value||'';
-  var tanggal=(document.getElementById('b-tanggal')||{}).value||'';
-  var ringkasan=(document.getElementById('b-ringkasan')||{}).value||'';
-  var isi=(document.getElementById('b-isi')||{}).value||'';
-  var ikon=(document.getElementById('b-ikon')||{}).value||'📰';
-  var status=(document.getElementById('b-status')||{}).value||'publish';
-  var gambar=(document.getElementById('b-gambar')||{}).value||'';
-  var youtube=(document.getElementById('b-youtube')||{}).value||'';
-  var video=(document.getElementById('b-video')||{}).value||'';
-  judul=judul.trim(); kategori=kategori.trim(); tanggal=tanggal.trim(); ringkasan=ringkasan.trim(); isi=isi.trim();
-
-  if(!judul||!kategori||!tanggal||!ringkasan||!isi){
-    al.className='alert alert-error show'; al.textContent='Harap lengkapi semua field yang wajib diisi (*).'; return;
+async function simpanBerita(){
+  hideAlert('form-alert');
+  var judul = (document.getElementById('b-judul') || {}).value || '';
+  var kategori = (document.getElementById('b-kategori') || {}).value || '';
+  var tanggal = (document.getElementById('b-tanggal') || {}).value || '';
+  var ringkasan = (document.getElementById('b-ringkasan') || {}).value || '';
+  var isi = (document.getElementById('b-isi') || {}).value || '';
+  var ikon = (document.getElementById('b-ikon') || {}).value || '📰';
+  var status = (document.getElementById('b-status') || {}).value || 'publish';
+  var gambar = (document.getElementById('b-gambar') || {}).value || '';
+  var youtube = (document.getElementById('b-youtube') || {}).value || '';
+  var video = (document.getElementById('b-video') || {}).value || '';
+  judul = judul.trim(); kategori = kategori.trim(); tanggal = tanggal.trim();
+  ringkasan = ringkasan.trim(); isi = isi.trim();
+  if (!judul || !kategori || !tanggal || !ringkasan || !isi) {
+    showAlert('form-alert', 'error', 'Harap lengkapi semua field yang wajib diisi (*).'); return;
   }
-  var data=loadBerita();
-  var newId=data.length?Math.max.apply(null,data.map(function(b){ return b.id; }))+1:1;
-  data.unshift({id:newId,judul:judul,kategori:kategori,tanggal:tanggal,ringkasan:ringkasan,isi:isi,ikon:ikon||'📰',status:status,gambar:gambar.trim(),youtube:youtube.trim(),video:video.trim()});
-  saveBerita(data);
-  al.className='alert alert-success show'; al.textContent='✅ Berita berhasil disimpan!';
-  ['b-judul','b-kategori','b-tanggal','b-ringkasan','b-isi','b-ikon','b-gambar','b-youtube','b-video'].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.value='';
-  });
-  var bs=document.getElementById('b-status'); if(bs) bs.value='publish';
-  renderDashboard();
+  showAlert('form-alert', 'info', '⏳ Menyimpan berita...');
+  try {
+    await sbInsert('berita', {
+      judul: judul, kategori: kategori, tanggal: tanggal,
+      ringkasan: ringkasan, isi: isi, ikon: ikon || '📰',
+      status: status, gambar: gambar.trim(),
+      youtube: youtube.trim(), video: video.trim()
+    });
+    showAlert('form-alert', 'success', '✅ Berita berhasil disimpan dan tersimpan di server!');
+    ['b-judul','b-kategori','b-tanggal','b-ringkasan','b-isi','b-ikon','b-gambar','b-youtube','b-video'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    var bs = document.getElementById('b-status'); if (bs) bs.value = 'publish';
+    renderDashboard();
+  } catch(e) {
+    showAlert('form-alert', 'error', '❌ Gagal menyimpan: ' + e.message);
+  }
 }
 
-function hapusBerita(id){
-  if(!confirm('Yakin ingin menghapus berita ini?')) return;
-  saveBerita(loadBerita().filter(function(b){ return b.id!==id; }));
-  renderDashboard();
+async function hapusBerita(id){
+  if (!confirm('Yakin ingin menghapus berita ini?')) return;
+  try {
+    await sbDelete('berita', id);
+    renderDashboard();
+  } catch(e) { alert('Gagal hapus: ' + e.message); }
 }
 
-function toggleStatus(id){
-  saveBerita(loadBerita().map(function(b){ return b.id===id?Object.assign({},b,{status:b.status==='publish'?'draft':'publish'}):b; }));
-  renderDashboard();
+async function toggleStatus(id, currentStatus){
+  var newStatus = currentStatus === 'publish' ? 'draft' : 'publish';
+  try {
+    await sbUpdate('berita', id, { status: newStatus });
+    renderDashboard();
+  } catch(e) { alert('Gagal update status: ' + e.message); }
 }
 
 // ════════════════════════════════
 // KONTAK
 // ════════════════════════════════
 function kirimKontak(){
-  var al=document.getElementById('kontak-alert');
-  var nama=document.getElementById('k-nama').value.trim();
-  var email=document.getElementById('k-email').value.trim();
-  var perihal=document.getElementById('k-perihal').value;
-  var pesan=document.getElementById('k-pesan').value.trim();
-  if(!nama||!email||!perihal||!pesan){
-    al.className='alert alert-error show'; al.textContent='Harap lengkapi semua field yang wajib diisi.'; return;
+  var nama = document.getElementById('k-nama').value.trim();
+  var email = document.getElementById('k-email').value.trim();
+  var perihal = document.getElementById('k-perihal').value;
+  var pesan = document.getElementById('k-pesan').value.trim();
+  if (!nama || !email || !perihal || !pesan) {
+    showAlert('kontak-alert', 'error', 'Harap lengkapi semua field yang wajib diisi.'); return;
   }
-  al.className='alert alert-success show'; al.textContent='✅ Pesan Anda telah terkirim. Terima kasih telah menghubungi Inspektorat Daerah Kabupaten Kepahiang.';
-  ['k-nama','k-email','k-telp','k-pesan'].forEach(function(i){ document.getElementById(i).value=''; });
-  document.getElementById('k-perihal').value='';
+  showAlert('kontak-alert', 'success', '✅ Pesan Anda telah terkirim. Terima kasih telah menghubungi Inspektorat Daerah Kabupaten Kepahiang.');
+  ['k-nama','k-email','k-telp','k-pesan'].forEach(function(i){ document.getElementById(i).value = ''; });
+  document.getElementById('k-perihal').value = '';
 }
 
 // ════════════════════════════════
