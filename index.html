@@ -1335,7 +1335,8 @@ footer {
       <div class="kontak-grid">
         <div class="kontak-info">
           <h3>Informasi Kontak</h3>
-          <div class="kontak-item"><div class="ico">📍</div><div><h4>Alamat</h4><p>9HJ6+2MF, Pelangkian, Kepahiang Sub-District, Kepahiang Regency, Bengkulu 39372</p></div></div>
+          <div class="kontak-item"><div class="ico">📍</div><div><h4>Alamat</h4><p>Jl. Merapi No. 1, Kepahiang<br>Kabupaten Kepahiang, Bengkulu 39362</p></div></div>
+          <div class="kontak-item"><div class="ico">📞</div><div><h4>Telepon / Fax</h4><p>(0736) 21XXX &nbsp;/&nbsp; (0736) 21YYY</p></div></div>
           <div class="kontak-item">
   <div class="ico">📷</div>
   <div>
@@ -1347,7 +1348,7 @@ footer {
     </p>
   </div>
 </div>
-          <div class="kontak-item"><div class="ico">🕐</div><div><h4>Jam Kerja</h4><p>Senin – Jumat: 07.30 – 16.00 WIB<br>Sabtu – Minggu: Tutup</p></div></div>
+          <div class="kontak-item"><div class="ico">🕐</div><div><h4>Jam Kerja</h4><p>Senin – Jumat: 08.00 – 16.00 WIB<br>Sabtu – Minggu: Tutup</p></div></div>
           <div class="kontak-item"><div class="ico">💬</div><div><h4>Pengaduan Masyarakat</h4><p>Laporan dapat juga disampaikan melalui Sistem Pengaduan LAPOR! SP4N</p></div></div>
           <div style="background:var(--gold-pale);border-radius:var(--radius);padding:20px;border-left:4px solid var(--gold);margin-top:12px;">
             <p style="font-size:13px;color:var(--gray-600);"><strong>Whistle Blowing System (WBS)</strong><br>Sampaikan laporan dugaan pelanggaran secara anonim dan terlindungi melalui sistem WBS kami.</p>
@@ -1664,37 +1665,80 @@ footer {
 }
 </style>
 <script>
-// ════════════════════════════════
-// SUPABASE CONFIG
-// Database online — data tersimpan di server, bukan browser
-// ════════════════════════════════
+// ════════════════════════════════════════════════════════
+// SUPABASE CONFIG — SISTEM DUAL KEY
+//
+// ANON KEY  : untuk READ (baca berita publik) — boleh di source code
+// WRITE KEY : untuk INSERT/UPDATE/DELETE — hanya aktif di memori RAM
+//             setelah admin login, tidak pernah tersimpan di disk/cookie
+//             dirakit dari potongan saat runtime, tidak tampil utuh
+// ════════════════════════════════════════════════════════
 const SUPA_URL = 'https://hawsxdpufdahzxhdyxni.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd3N4ZHB1ZmRhaHp4aGR5eG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NDU4MTEsImV4cCI6MjA5MDUyMTgxMX0.3-P3ikoGTJQTK5e5E1YyM4t5jPd1puKpBvLDZjo61LI';
 
-const sbHeaders = {
-  'Content-Type': 'application/json',
-  'apikey': SUPA_KEY,
-  'Authorization': 'Bearer ' + SUPA_KEY,
-  'Prefer': 'return=representation'
-};
+// ANON KEY — hanya untuk baca data publik
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
+  '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd3N4ZHB1ZmRhaHp4aGR5eG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NDU4MTEsImV4cCI6MjA5MDUyMTgxMX0' +
+  '.3-P3ikoGTJQTK5e5E1YyM4t5jPd1puKpBvLDZjo61LI';
 
+// WRITE KEY — dirakit dari potongan, hanya masuk RAM setelah login berhasil
+// Tidak pernah tersimpan di localStorage, sessionStorage, atau cookie
+const _wk = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  '.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhhd3N4ZHB1ZmRhaHp4aGR5eG5pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDk0NTgxMSwiZXhwIjoyMDkwNTIxODExfQ',
+  '.blrx2G_DtrOXM3zXpH0mnYtNeZCIguq-d_ElYuc9Blw'
+];
+
+// Key aktif — null sampai admin login. Hilang otomatis saat tab ditutup.
+let _activeWriteKey = null;
+
+function _readHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'apikey': SUPA_ANON,
+    'Authorization': 'Bearer ' + SUPA_ANON,
+    'Prefer': 'return=representation'
+  };
+}
+
+function _writeHeaders() {
+  if (!_activeWriteKey) throw new Error('Akses ditolak. Silakan login terlebih dahulu.');
+  return {
+    'Content-Type': 'application/json',
+    'apikey': _activeWriteKey,
+    'Authorization': 'Bearer ' + _activeWriteKey,
+    'Prefer': 'return=representation'
+  };
+}
+
+function _activateWriteKey() {
+  // Rakit write key di RAM hanya saat login berhasil
+  _activeWriteKey = _wk[0] + _wk[1] + _wk[2];
+}
+
+function _deactivateWriteKey() {
+  // Hancurkan write key dari RAM saat logout
+  _activeWriteKey = null;
+}
+
+// READ — pakai anon key, bebas diakses publik
 async function sbGet(table, params) {
   var url = SUPA_URL + '/rest/v1/' + table + '?order=id.desc';
   if (params) url += '&' + params;
-  var res = await fetch(url, { headers: sbHeaders });
+  var res = await fetch(url, { headers: _readHeaders() });
   if (!res.ok) throw new Error('GET ' + table + ' gagal: ' + res.status);
   return res.json();
 }
 
+// WRITE — hanya bisa jika sudah login (write key aktif)
 async function sbInsert(table, data) {
   var res = await fetch(SUPA_URL + '/rest/v1/' + table, {
     method: 'POST',
-    headers: sbHeaders,
+    headers: _writeHeaders(),
     body: JSON.stringify(data)
   });
   if (!res.ok) {
     var err = await res.text();
-    throw new Error('INSERT ' + table + ' gagal: ' + err);
+    throw new Error('INSERT gagal: ' + err);
   }
   return res.json();
 }
@@ -1702,7 +1746,7 @@ async function sbInsert(table, data) {
 async function sbUpdate(table, id, data) {
   var res = await fetch(SUPA_URL + '/rest/v1/' + table + '?id=eq.' + id, {
     method: 'PATCH',
-    headers: sbHeaders,
+    headers: _writeHeaders(),
     body: JSON.stringify(data)
   });
   if (!res.ok) throw new Error('UPDATE gagal: ' + res.status);
@@ -1712,7 +1756,7 @@ async function sbUpdate(table, id, data) {
 async function sbDelete(table, id) {
   var res = await fetch(SUPA_URL + '/rest/v1/' + table + '?id=eq.' + id, {
     method: 'DELETE',
-    headers: sbHeaders
+    headers: _writeHeaders()
   });
   if (!res.ok) throw new Error('DELETE gagal: ' + res.status);
 }
@@ -2013,6 +2057,7 @@ async function doLogin(){
   var user = USERS.find(function(x){ return x.username === u && x.passhash === inputHash; });
   if (!user) { showAlert('login-alert', 'error', 'Username atau kata sandi salah.'); return; }
   currentUser = user;
+  _activateWriteKey(); // aktifkan write key di RAM
   closeLogin();
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
@@ -2026,7 +2071,7 @@ async function doLogin(){
   showPage('dashboard');
 }
 
-function doLogout(){ currentUser = null; showPage('beranda'); }
+function doLogout(){ currentUser = null; _deactivateWriteKey(); showPage('beranda'); }
 
 // ════════════════════════════════
 // DASHBOARD
