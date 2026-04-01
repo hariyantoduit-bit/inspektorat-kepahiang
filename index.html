@@ -1097,79 +1097,170 @@ footer {
       <p style="color:rgba(255,255,255,0.7);font-size:15px;max-width:560px;line-height:1.7;margin-top:12px;">Struktur organisasi Inspektorat Daerah Kabupaten Kepahiang berdasarkan Peraturan Bupati Kepahiang tentang Kedudukan, Susunan Organisasi, Tugas dan Fungsi.</p>
     </div>
   </div>
+
   <div class="section" style="margin-top:-40px;">
     <div class="container">
-      <div style="background:var(--white);border-radius:var(--radius-lg);padding:52px 40px;box-shadow:var(--shadow-md);">
-        <!-- BAGAN -->
-        <div class="org-chart">
-          <!-- Level 1: Inspektur -->
-          <div class="org-level">
-            <div class="org-card" style="min-width:220px;max-width:240px;">
-              <div class="avatar">👤</div>
+      <div style="background:var(--white);border-radius:var(--radius-lg);padding:48px 24px 52px;box-shadow:var(--shadow-md);overflow-x:auto;">
+
+        <!-- JUDUL BAGAN -->
+        <div style="text-align:center;margin-bottom:40px;">
+          <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">Bagan Organisasi</div>
+          <h3 style="font-family:'Lora',serif;font-size:20px;color:var(--navy);">Inspektorat Daerah Kabupaten Kepahiang</h3>
+        </div>
+
+        <!-- WRAPPER bagan — scroll horizontal di layar kecil -->
+        <div style="min-width:860px;">
+
+          <!-- ══ LEVEL 1: INSPEKTUR ══ -->
+          <div style="display:flex;justify-content:center;margin-bottom:0;">
+            <div class="org-card" style="min-width:210px;max-width:230px;border-top:4px solid var(--navy);">
+              <div class="avatar" style="background:var(--navy);">👤</div>
               <h4>Dedi Candira Wijaya Kusuma</h4>
               <div class="jabatan">Inspektur</div>
-              <div class="nip">NIP. </div>
+              <div class="nip">NIP.&nbsp;</div>
             </div>
           </div>
 
-          <div class="org-connector-v"></div>
-
-          <!-- Level 2: Sekretaris + Irban -->
-          <div style="position:relative;display:flex;gap:28px;justify-content:center;">
-            <div style="position:absolute;top:-20px;left:calc(50% - 290px);right:calc(50% - 290px);height:2px;background:rgba(15,42,92,0.2);"></div>
-
-            <div class="org-card gold">
-              <div class="avatar">👤</div>
-              <h4> </h4>
-              <div class="jabatan">Sekretaris</div>
-              <div class="nip"> </div>
-            </div>
-            <div class="org-card green">
-              <div class="avatar">👤</div>
-              <h4> </h4>
-              <div class="jabatan">Inspektur Pembantu Wil. I</div>
-              <div class="nip"> </div>
-            </div>
-            <div class="org-card green">
-              <div class="avatar">👤</div>
-              <h4> </h4>
-              <div class="jabatan">Inspektur Pembantu Wil. II</div>
-              <div class="nip"> </div>
-            </div>
-            <div class="org-card green">
-              <div class="avatar">👤</div>
-              <h4> </h4>
-              <div class="jabatan">Inspektur Pembantu Wil. III</div>
-              <div class="nip"> </div>
-            </div>
-            <div class="org-card green">
-              <div class="avatar">👤</div>
-              <h4> </h4>
-              <div class="jabatan">Inspektur Pembantu Investigasi</div>
-              <div class="nip"> </div>
-            </div>			
+          <!-- Konektor vertikal turun dari Inspektur -->
+          <div style="display:flex;justify-content:center;">
+            <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
           </div>
 
-          <div style="height:28px;"></div>
+          <!-- Garis horizontal level 2 -->
+          <div style="position:relative;height:2px;background:rgba(15,42,92,0.2);margin:0 60px;"></div>
 
-          <!-- Level 3: Sub bagian sekretariat -->
-          <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
-            <div class="org-card" style="min-width:150px;border-top-color:var(--gold);">
-              <div class="avatar" style="width:40px;height:40px;font-size:18px;">👤</div>
-              <h4 style="font-size:12px;"> </h4>
-              <div class="jabatan">Kasubbag Administrasi dan Umum</div>
+          <!-- ══ LEVEL 2: SEKRETARIS + 4 IRBAN ══ -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:0 20px;">
+
+            <!-- KOLOM KIRI: SEKRETARIS + 2 sub di bawahnya -->
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1.4;">
+              <!-- konektor naik ke garis horizontal -->
+              <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
+              <!-- Kotak Sekretaris -->
+              <div class="org-card gold" style="width:100%;max-width:200px;">
+                <div class="avatar" style="background:var(--gold);width:44px;height:44px;font-size:20px;">👤</div>
+                <h4 style="font-size:12.5px;">&nbsp;</h4>
+                <div class="jabatan">Sekretaris</div>
+                <div class="nip">&nbsp;</div>
+              </div>
+              <!-- konektor turun ke sub -->
+              <div style="width:2px;height:24px;background:rgba(15,42,92,0.25);"></div>
+              <!-- garis horizontal ke 2 sub -->
+              <div style="position:relative;width:100%;max-width:320px;">
+                <div style="height:2px;background:rgba(15,42,92,0.2);width:100%;"></div>
+                <!-- 2 sub sekretariat -->
+                <div style="display:flex;gap:8px;justify-content:space-between;margin-top:0;">
+                  <!-- Sub kiri -->
+                  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                    <div style="width:2px;height:22px;background:rgba(15,42,92,0.25);"></div>
+                    <div class="org-card" style="width:100%;border-top:3px solid var(--gold);padding:12px 8px;">
+                      <div class="avatar" style="width:36px;height:36px;font-size:16px;background:var(--gold);">👤</div>
+                      <h4 style="font-size:10.5px;line-height:1.4;">&nbsp;</h4>
+                      <div class="jabatan" style="font-size:10px;line-height:1.3;">Kasubbag Administrasi dan Umum</div>
+                    </div>
+                  </div>
+                  <!-- Sub kanan -->
+                  <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+                    <div style="width:2px;height:22px;background:rgba(15,42,92,0.25);"></div>
+                    <div class="org-card" style="width:100%;border-top:3px solid var(--gold);padding:12px 8px;">
+                      <div class="avatar" style="width:36px;height:36px;font-size:16px;background:var(--gold);">👤</div>
+                      <h4 style="font-size:10.5px;line-height:1.4;">&nbsp;</h4>
+                      <div class="jabatan" style="font-size:10px;line-height:1.3;">Kasub Koordinator dan Kelompok Jabatan Fungsional</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="org-card" style="min-width:150px;border-top-color:var(--gold);">
-              <div class="avatar" style="width:40px;height:40px;font-size:18px;">👤</div>
-              <h4 style="font-size:12px;"> </h4>
-              <div class="jabatan">Kasub Koordinator dan Kelompok Jabatan Fungsional</div>
+
+            <!-- IRBAN WIL I -->
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+              <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
+              <div class="org-card green" style="width:100%;max-width:165px;">
+                <div class="avatar" style="background:var(--green);width:44px;height:44px;font-size:20px;">👤</div>
+                <h4 style="font-size:12px;">&nbsp;</h4>
+                <div class="jabatan" style="font-size:10.5px;">Inspektur Pembantu Wil. I</div>
+                <div class="nip">&nbsp;</div>
+              </div>
             </div>
-           </div>
+
+            <!-- IRBAN WIL II -->
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+              <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
+              <div class="org-card green" style="width:100%;max-width:165px;">
+                <div class="avatar" style="background:var(--green);width:44px;height:44px;font-size:20px;">👤</div>
+                <h4 style="font-size:12px;">&nbsp;</h4>
+                <div class="jabatan" style="font-size:10.5px;">Inspektur Pembantu Wil. II</div>
+                <div class="nip">&nbsp;</div>
+              </div>
+            </div>
+
+            <!-- IRBAN WIL III -->
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+              <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
+              <div class="org-card green" style="width:100%;max-width:165px;">
+                <div class="avatar" style="background:var(--green);width:44px;height:44px;font-size:20px;">👤</div>
+                <h4 style="font-size:12px;">&nbsp;</h4>
+                <div class="jabatan" style="font-size:10.5px;">Inspektur Pembantu Wil. III</div>
+                <div class="nip">&nbsp;</div>
+              </div>
+            </div>
+
+            <!-- IRBAN INVESTIGASI -->
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+              <div style="width:2px;height:32px;background:rgba(15,42,92,0.25);"></div>
+              <div class="org-card green" style="width:100%;max-width:165px;">
+                <div class="avatar" style="background:var(--green);width:44px;height:44px;font-size:20px;">👤</div>
+                <h4 style="font-size:12px;">&nbsp;</h4>
+                <div class="jabatan" style="font-size:10.5px;">Inspektur Pembantu Investigasi</div>
+                <div class="nip">&nbsp;</div>
+              </div>
+            </div>
+
+          </div>
+          <!-- END LEVEL 2 -->
+
+          <!-- ══ LEVEL 3: JABATAN FUNGSIONAL AUDITOR (sejajar, di bawah sendiri) ══ -->
+          <!-- Konektor vertikal turun di bawah area Irban Investigasi / tengah -->
+          <div style="display:flex;justify-content:flex-end;padding-right:calc(20px + 0%);">
+            <div style="width:2px;height:28px;background:rgba(15,42,92,0.25);margin-right:calc(10% - 2px);"></div>
+          </div>
+
+          <!-- Baris Jabatan Fungsional Auditor sejajar dengan Inspektur (row sendiri, tengah-kanan) -->
+          <div style="display:flex;justify-content:center;margin-top:4px;">
+            <div style="display:flex;align-items:flex-start;gap:0;">
+              <!-- Garis horizontal pendek dari tengah ke kotak -->
+              <div style="display:flex;flex-direction:column;align-items:center;">
+                <div class="org-card" style="min-width:200px;max-width:230px;border-top:3px solid #6B7280;padding:16px 14px;">
+                  <div class="avatar" style="background:#6B7280;width:44px;height:44px;font-size:20px;">👥</div>
+                  <h4 style="font-size:12px;color:#374151;">Jabatan Fungsional Auditor</h4>
+                  <div class="jabatan" style="font-size:10.5px;">Kelompok Jabatan Fungsional</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <!-- END WRAPPER BAGAN -->
+
+        <!-- KETERANGAN WARNA -->
+        <div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--gray-100);display:flex;gap:20px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-600);">
+            <div style="width:14px;height:14px;background:var(--navy);border-radius:3px;"></div>Pimpinan
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-600);">
+            <div style="width:14px;height:14px;background:var(--gold);border-radius:3px;"></div>Sekretariat
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-600);">
+            <div style="width:14px;height:14px;background:var(--green);border-radius:3px;"></div>Inspektur Pembantu
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray-600);">
+            <div style="width:14px;height:14px;background:#6B7280;border-radius:3px;"></div>Jabatan Fungsional
+          </div>
         </div>
 
         <!-- TABEL JABATAN FUNGSIONAL -->
-        <div style="margin-top:52px;">
-          <h3 style="font-family:'Lora',serif;font-size:20px;color:var(--navy);margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--gray-100);">Jabatan Fungsional Auditor</h3>
+        <div style="margin-top:36px;">
+          <h3 style="font-family:'Lora',serif;font-size:20px;color:var(--navy);margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid var(--gray-100);">Rekapitulasi Jabatan Fungsional Auditor</h3>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
             <div style="background:var(--gray-50);border-radius:var(--radius);padding:18px;border-left:3px solid var(--navy);">
               <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;margin-bottom:8px;">Auditor Madya</div>
@@ -1197,12 +1288,12 @@ footer {
             </div>
           </div>
         </div>
+
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════ -->
 <!-- PAGE: BERITA LENGKAP -->
 <!-- ══════════════════════════════════════════ -->
 <div class="page" id="page-berita">
